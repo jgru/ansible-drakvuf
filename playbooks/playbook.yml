@@ -1,0 +1,10 @@
+# usage: ansible-playbook -i inventory/hosts playbook.yml --ask-become-pass -v
+---
+- hosts: all
+  gather_facts: false
+  pre_tasks:
+    - name: Install minimal Python for Ansible
+      raw: (test -e /usr/bin/python3) || (sudo apt -y update && sudo apt install -y python3-minimal)
+      changed_when: False
+  roles:
+    - drakvuf-dev

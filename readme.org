@@ -1,0 +1,19 @@
+* ansible-drakvuf
+:bangbang: WIP :bangbang:
+Ansible role to deploy the black-box binary analysis system DRAKVUF on a host based on Ubuntu 20.04 from scratch.
+The role ~drakvuf-dev~ aims at installing a basic development environment for working on DRAKVUF.
+
+** Usage
+1. Insert the IP of your target machine to the inventory ~./inventory/hosts~ and make sure, that it is accessible via passwordless SSH.
+2. Edit the variables inside ~./roles/drakvuf-dev/defaults/main.yml~ to match your environment, if needed. 
+3. Use ~ansible-playbook~ to run the setup process 
+    #+begin_src bash
+    ansible-playbook -i inventory/hosts playbooks/playbook.yml --ask-become-pass -vvv
+    #+end_src
+
+4. Create your domU machine and start to use DRAKVUF.
+
+*Note*: This is work in progress, there will be bugs and problems!
+
+
+

@@ -1,0 +1,13 @@
+---
+
+# Install base packages
+- import_tasks: prepare_base.yml
+# Get drakvuf sources
+- import_tasks: prepare_drakvuf.yml
+# Compile and install Xen
+- import_tasks: install_xen.yml
+# Compile and install libvmi
+- import_tasks: install_libvmi.yml
+# Install volatility3
+- import_tasks: install_volatility3.yml
+

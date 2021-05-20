@@ -1,0 +1,33 @@
+---
+- name: Configure libvmi with custom modules
+  command: "autoreconf -vif"
+  args:
+    chdir: "{{ build_dir}}/libvmi"
+  become_user: "{{ drakvuf_user }}"
+  become: yes
+
+- name: Configure libvmi and disable kvm, bareflank and file
+  command: "./configure --disable-kvm --disable-bareflank --disable-file"
+  args:
+    chdir: "{{ build_dir }}/libvmi"
+  become_user: "{{ drakvuf_user }}"
+  become: yes
+
+- name: Compile libvmi
+  command: "make"
+  args:
+    chdir: "{{ build_dir }}/libvmi"
+  become_user: "{{ drakvuf_user }}"
+  become: yes
+
+- name: Install libvmi
+  command: "make install"
+  args:
+    chdir: "{{ build_dir }}/libvmi"
+  become: yes
+
+- name: Append persistantly /usr/local/lib to LD_LIBRARY_PATH
+  lineinfile:
+    dest: /home/{{ drakvuf_user }}/.bashrc
+    line: "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib"
+  become_user: "{{ drakvuf_user }}"

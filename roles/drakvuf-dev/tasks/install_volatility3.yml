@@ -1,0 +1,14 @@
+---
+- name: Build Volatility
+  become: yes
+  become_user: "{{ drakvuf_user }}"
+  command: "python3 setup.py build"
+  args:
+    chdir: "{{ build_dir }}/volatility3/"
+
+- name: Install Volatility
+  become: yes
+  become_method: sudo
+  command: "python3 setup.py build"
+  args:
+    chdir: "{{ build_dir }}/volatility3/"

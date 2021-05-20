@@ -1,0 +1,6 @@
+# Base vars
+distribution: focal
+drakvuf_user: user01
+build_dir: /usr/local/src/drakvuf
+iso: Win7_HomePrem_SP1_German_COEM_x32.iso
+

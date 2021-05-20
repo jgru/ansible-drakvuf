@@ -1,0 +1,126 @@
+---
+# Compile Xen
+- name: Configure xen with custom modules
+  command: "./configure --enable-githttp --enable-systemd --enable-ovmf --disable-pvshim"
+  args:
+    chdir: "{{ build_dir}}/xen"
+  become_user: "{{ drakvuf_user }}"
+
+- name: Make dist-xen
+  become: yes
+  become_user: "{{ drakvuf_user }}"
+  shell: "make -j4 dist-xen"
+  args:
+    chdir: "{{ build_dir }}/xen/"
+
+- name: Make dist-tools
+  become: yes
+  become_user: "{{ drakvuf_user }}"
+  shell: "make -j4 dist-tools"
+  args:
+    chdir: "{{ build_dir }}/xen/"
+
+- name: Make debball
+  become: yes
+  become_user: "{{ drakvuf_user }}"
+  shell: "make -j4 debball"
+  args:
+    chdir: "{{ build_dir }}/xen/"
+
+#Install Xen
+- name: Remove old xen*-packages
+  become: yes
+  become_method: sudo
+  apt:
+    name: xen*
+    state: absent
+
+- name: Remove old libxen*-packages
+  become: yes
+  become_method: sudo
+  apt:
+    name: libxen*
+    state: absent
+
+- name: Install xen with dpkg and the created debball
+  shell: "dpkg -i {{ build_dir }}/xen/dist/xen*.deb"
+  become: yes
+
+- name: Change GRUB_CMDLINE_XEN_DEFAULT
+  lineinfile:
+    dest: /etc/default/grub
+    line: "GRUB_CMDLINE_XEN_DEFAULT=\"dom0_mem=4096M,max:4096M dom0_max_vcpus=4 dom0_vcpus_pin=1 force-ept=1 ept=ad=0 hap_1gb=0 hap_2mb=0 altp2m=1 hpet=legacy-replacement smt=0\""
+  become: yes
+
+- name: Add /usr/local/lib to dynamic library search path of xen
+  lineinfile:
+    dest: /etc/ld.so.conf.d/xen.conf
+    line: "/usr/local/lib"
+    create: yes
+  become: yes
+
+- name: Run ldconfig to create the necessary links and cache for dynamically linked libraries
+  command: /sbin/ldconfig
+  become: yes
+
+- name: Add /proc/xen-mountpoint in /etc/fstab
+  lineinfile:
+    dest: /etc/fstab
+    line: "none /proc/xen xenfs defaults,nofail 0 0"
+  become: yes
+
+- name: Add kernel modules providing Xen event channel interface and the interface to privileged domain-0 commands to the list of kernel modules loaded at boot time
+  blockinfile:
+    path: /etc/modules
+    block: |
+      xen-evtchn
+      xen-privcm
+  become: yes
+
+- name: Enable service for xen dom0 disk backend
+  systemd:
+    name: xen-qemu-dom0-disk-backend.service
+    enabled: yes
+    masked: no
+  become: yes
+
+- name: Enable xen-init-dom0-service, which initialises Dom0 configuration
+  systemd:
+    name: xen-init-dom0.service
+    enabled: yes
+    masked: no
+  become: yes
+
+- name: Enable xenconsoled-service, which handles logging from guest consoles and hypervisor
+  systemd:
+    name: xenconsoled.service
+    enabled: yes
+    masked: no
+  become: yes
+
+- name: Retrieve boot entry for the GRUB menu entry of the kernel 5.10 with Xen
+  #shell: "awk -F\\' '/menuentry / {print $2}' /boot/grub/grub.cfg | grep -n -E 'Xen.*5\\.10' | head -n1 | awk -F':' '{print $1}' | { read r; echo $(($r - 1)); }"
+  shell: awk -F\' '/menuentry / {print $2}' /boot/grub/grub.cfg | grep -E 'Xen' | head -n1
+  register: entry_idx
+
+- name: Replace GRUB default entry by the newly created entry to boot straight into xen
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_DEFAULT='
+    line: GRUB_DEFAULT="{{ entry_idx.stdout }}" #GRUB_DEFAULT="Ubuntu GNU/Linux, with Xen hypervisor"
+  become: yes
+
+- name: Run update-grub
+  shell: update-grub
+  become: yes
+
+
+- name: Restart machine
+  shell: sleep 2 && reboot now
+  async: 1
+  poll: 0
+  become: yes
+  ignore_errors: true
+
+- name: Waiting for machine to come online again
+  local_action: wait_for host={{ inventory_hostname }} state=started delay=30 timeout=300
