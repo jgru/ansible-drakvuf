@@ -4,9 +4,9 @@
 This repository is work in progress, if you encounter any bugs or other problems, please report them.
 
 ** Description
-This repository provides an Ansible playbook to deploy the black-box binary analysis system DRAKVUF on a host, which is based on Ubuntu 20.04 from scratch. (Debian Bullseye should work also, but has not been tested yet.)
+This repository provides an Ansible playbook to deploy the black-box binary analysis system [[https://github.com/tklengyel/drakvuf][DRAKVUF©]] on a host, which is based on Ubuntu 20.04 from scratch. (Debian Bullseye should work also, but has not been tested yet.)
 
-The role ~drakvuf-dev~ aims at installing a basic development environment for working on DRAKVUF. It follows the guide at [[drakvuf.com][https://drakvuf.com/]] and automates the commands mentioned there.
+The role ~drakvuf-dev~ aims at installing a basic development environment for working on DRAKVUF©. It follows the guide at [[https://drakvuf.com/][drakvuf.com]] and automates the commands mentioned there.
 
 ** Usage
 1. Insert the IP of your target machine to the inventory ~./inventory/hosts~ and make sure, that it is accessible via passwordless SSH.
@@ -16,9 +16,9 @@ The role ~drakvuf-dev~ aims at installing a basic development environment for wo
     ansible-playbook -i inventory/hosts playbooks/playbook.yml --ask-become-pass -vvv
     #+end_src
 
-Afterwards you have to manual create your domU machine and create the corresponding Intermediate Symbol File (ISF), which is needed by libvmi and DRAKVUF to perform introspection. 
-
+Afterwards you have to manual create your domU machine and create the corresponding Intermediate Symbol File (ISF), which is needed by libvmi and DRAKVUF© to perform introspection. 
 
 ** References
 [1] https://drakvuf.com/
+
 [2] https://pub.nethence.com/security/drakvuf
