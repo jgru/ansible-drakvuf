@@ -1,0 +1,6 @@
+[drakvuf]
+127.0.0.1
+
+[all:vars]
+ansible_connection=ssh
+ansible_user=user01
