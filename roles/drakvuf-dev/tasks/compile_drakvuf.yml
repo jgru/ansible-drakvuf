@@ -6,8 +6,8 @@
   become_user: "{{ drakvuf_user }}"
   become: yes
 
-- name: Configure drakvuf
-  command: "./configure"
+- name: Configure drakvuf with debugging enabled
+  command: "./configure --enable-debug"
   args:
     chdir: "{{ build_dir }}/"
   become_user: "{{ drakvuf_user }}"
