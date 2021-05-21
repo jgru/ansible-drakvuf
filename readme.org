@@ -8,7 +8,7 @@ This repository provides an [[https://github.com/ansible/ansible][Ansible]] play
 
 The role ~drakvuf-dev~ aims at installing a basic development environment for working on DRAKVUF©. It follows the guide at [[https://drakvuf.com/][drakvuf.com]] and automates the commands mentioned there. The Ansible role performs the following steps in an automated manner:
 
-1. Install the Linux Kernel 5.10.0-1019
+1. Install the Linux Kernel in version 5.10.0-1019
 2. Install the basic requirements
 3. Download DRAKVUF's source code and it's dependency sources
 4. Compile and install Xen from source and sets GRUB entry
@@ -16,7 +16,7 @@ The role ~drakvuf-dev~ aims at installing a basic development environment for wo
 6. Install volatility3 and download the symbol files
 7. Set up a network bridge for the Xen guests
 
-Afterwards you have a development environment for DRAKVUF©, you have to install your favorite IDE and a Xen guest on your own though.
+Afterwards you have a development environment for DRAKVUF©. This role does not take care of the installation of an IDE and or Xen guests (for reasons and manual steps to take, see below).
 
 ** Usage
 1. Insert the IP of your target machine to the inventory ~./inventory/hosts~ and make sure, that it is accessible via passwordless SSH.
@@ -111,7 +111,7 @@ symbol to a physical address and perform the actual read the VM's memory. In ord
 
 Volatility's ~pdbconv.py~ script takes a string made up of the GUID and Age (~--guid~) of the required PDB file and the kernel name (~-p~) and then searches all files under Volatily's  configured symbol directories and uses a matching filename pattern of <pdb-name>/<GUID>-<AGE>.json (or any compressed variant), as described [[https://volatility3.readthedocs.io/en/latest/symbol-tables.html][here]].
 
-To retrieve the GUID and Age as well as the kernel filename libvmi's ~vmi-win-guid~-tool is used.
+To retrieve the GUID and Age as well as the kernel filename libvmi's ~vmi-win-guid~-tool is used, which accesses the PE_HEADER of the Windows kernel.
 
 #+begin_src
 # Retrieve GUID and kernel filename and store in vars
