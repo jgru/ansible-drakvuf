@@ -10,5 +10,7 @@
 - import_tasks: install_libvmi.yml
 # Install volatility3
 - import_tasks: install_volatility3.yml
+# Compile drakvuf
+- import_tasks: compile_drakvuf.yml
 # Creates a network bridge for Xen guests
 - import_tasks: setup_bridge.yml
