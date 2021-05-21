@@ -4,19 +4,146 @@
 This repository is work in progress, if you encounter any bugs or other problems, please report them.
 
 ** Description
-This repository provides an Ansible playbook to deploy the black-box binary analysis system [[https://github.com/tklengyel/drakvuf][DRAKVUF©]] on a host, which is based on Ubuntu 20.04 from scratch. (Debian Bullseye should work also, but has not been tested yet.)
+This repository provides an [[https://github.com/ansible/ansible][Ansible]] playbook to deploy the black-box binary analysis system [[https://github.com/tklengyel/drakvuf][DRAKVUF©]] on a host, which is based on Ubuntu 20.04 from scratch. (Debian Bullseye should work also, but has not been tested yet.)
 
-The role ~drakvuf-dev~ aims at installing a basic development environment for working on DRAKVUF©. It follows the guide at [[https://drakvuf.com/][drakvuf.com]] and automates the commands mentioned there.
+The role ~drakvuf-dev~ aims at installing a basic development environment for working on DRAKVUF©. It follows the guide at [[https://drakvuf.com/][drakvuf.com]] and automates the commands mentioned there. The Ansible role performs the following steps in an automated manner:
+
+1. Install the Linux Kernel 5.10.0-1019
+2. Install the basic requirements
+3. Download DRAKVUF's source code and it's dependency sources
+4. Compile and install Xen from source and sets GRUB entry
+5. Compile and install libvmi from source
+6. Install volatility3 and download the symbol files
+7. Set up a network bridge for the Xen guests
+
+Afterwards you have a development environment for DRAKVUF©, you have to install your favorite IDE and a Xen guest on your own though.
 
 ** Usage
 1. Insert the IP of your target machine to the inventory ~./inventory/hosts~ and make sure, that it is accessible via passwordless SSH.
-2. Edit the variables inside ~./roles/drakvuf-dev/defaults/main.yml~ to match your environment, if needed. 
-3. Use ~ansible-playbook~ to run the setup process 
-    #+begin_src bash
-    ansible-playbook -i inventory/hosts playbooks/playbook.yml --ask-become-pass -vvv
-    #+end_src
+2. Edit the variables inside ~./roles/drakvuf-dev/defaults/main.yml~ to match your environment, if needed.
+3. Use ~ansible-playbook~ to run the setup
+#+begin_src bash
+ansible-playbook -i inventory/hosts playbooks/playbook.yml --ask-become-pass -vvv
+#+end_src
 
-Afterwards you have to manual create your domU machine and create the corresponding Intermediate Symbol File (ISF), which is needed by libvmi and DRAKVUF© to perform introspection. 
+The complete toolchain has been setup, however you have to manually create your domU -- a xen-guest -- afterwards and create the corresponding Intermediate Symbol File (ISF), which is needed by [[https://github.com/libvmi/libvmi][libvmi]] and [[https://github.com/tklengyel/drakvuf][DRAKVUF©]] to perform introspection.
+
+Right now these steps are not automated, since it is highly dependent on your choices and prerequisites -- like availabe ISOs (with autounattend.xml/preseed.cfg) or your raw images of already created guests and so on.
+
+Therefore theses steps are only described in the following section, although they are automatable (especially for Linux guests; drop me a line if you think this would be beneficial).
+
+** Manual steps
+To be able to use use DRAKVUF© you have to make sure, that you booted into Xen perform the following steps to create a VM, which can be introspected.
+
+*** Create domU
+**** Create LVM logical volume
+It is advisable to create a logical volume, where the guest will be installed. For a general overview about LVM have a look at [[https://wiki.debian.org/LVM][Debian's Wiki]]. The following command documentation gives a quick overview about the needed steps (caution data will be lost, if you're not understanding, what you're doing):
+
+#+begin_src bash
+# Convert a devices (partitions respectively) into PVs (physical volumes)
+pvcreate /dev/sdXn
+pvcreate /dev/sdYn
+# Create a volume group named vg0 from those PVs
+vgcreate vg0 /dev/sdXn /dev/sdYn
+# Rescan for the volume group to ensure success
+vgscan
+# Create a logical volume name windows7-sp1 on volume group vg0
+lvcreate -L20G -n windows7-sp1 vg0
+# Check the result
+lvdisplay
+#+end_src
+
+**** Create a Xen Windows VM
+At first transfer your installation ISO to your Xen host. (Here it is assumed, that you place the .iso at ~/tmp/Win7_HomePrem_SP1.iso~)
+
+Afterwards create the domU-configuration file (here ~win7.cfg~) , which will be place under ~/etc/xen~.
+
+#+begin_src bash
+# Become root
+sudo su -
+
+# Ensure that Xen is running
+xen-detect
+
+# Create configuration file for Xen guest
+cat <<EOF > /etc/xen/win7.cfg
+arch = 'x86'
+name = "windows7-sp1"
+maxmem = 3000
+memory = 3000
+vcpus = 2
+maxvcpus = 2
+builder = "hvm"
+boot = "cd"
+hap = 1
+on_poweroff = "destroy"
+on_reboot = "destroy"
+on_crash = "destroy"
+vnc = 1
+vnclisten = "0.0.0.0"
+vga = "stdvga"
+usb = 1
+usbdevice = "tablet"
+audio = 1
+soundhw = "hda"
+viridian = 1
+altp2m = 2
+shadow_memory = 32
+# You could omit network configuration also
+vif = [ 'type=ioemu,model=e1000,bridge=xenbr0' ]
+disk = [ 'phy:/dev/vg0/windows7-sp1,hda,w', 'file:/tmp/Win7_HomePrem_SP1.iso,hdc:cdrom,r' ]
+EOF
+#+end_src
+Afterwards you can boot and install the machine. If you have no ~autounattend.xml~-file in your ISO to automatically install windows. You have to connect via VNC to the newly created guest (.e.g. use [[https://packages.debian.org/sid/tigervnc-viewer][tigervnc-viewer]] for that).
+
+#+begin_src bash
+# Create and start the VM
+xl create /etc/xen/win7.cfg
+
+# Connect to the machine by using Xen hosts IP-address
+vncviewer 127.0.0.1:5900
+#+end_src
+Now you should be able to complete the OS installation and use the VM.
+
+*** Create Intermediate Symbol File
+To perform virtual machine introspection libvmi needs to be able to resolve the kernel symbol, translate the kernel
+symbol to a physical address and perform the actual read the VM's memory. In order to accomplish this, a table of the constants, enums and the symbols with their respective memory address has to be available. Here an /Intermediate Symbol File/ (ISF, or IST for table) will be either created or retrieved and used.
+
+Volatility's ~pdbconv.py~ script takes a string made up of the GUID and Age (~--guid~) of the required PDB file and the kernel name (~-p~) and then searches all files under Volatily's  configured symbol directories and uses a matching filename pattern of <pdb-name>/<GUID>-<AGE>.json (or any compressed variant), as described [[https://volatility3.readthedocs.io/en/latest/symbol-tables.html][here]].
+
+To retrieve the GUID and Age as well as the kernel filename libvmi's ~vmi-win-guid~-tool is used.
+
+#+begin_src
+# Retrieve GUID and kernel filename and store in vars
+GUID=$(sudo vmi-win-guid name windows7-sp1 | grep "PDB GUID" | cut -d' ' -f3)
+P=$(sudo vmi-win-guid name windows7-sp1 | grep "Kernel filename" | cut -d' ' -f3)
+
+# Run Volatily's pdbconv.py to retrieve the intermediate symbol table in JSON format
+sudo python3 /usr/local/src/drakvuf/volatility3/volatility/framework/symbols/windows/pdbconv.py --guid $GUID -p $P -o windows7-sp1.json
+
+# Elevante privileges (neded for writing in /etc/)
+sudo su
+
+# Copy the ISF to another location; some others choose /root/..
+mkdir -p /usr/local/share/vmi/
+mv windows7-sp1.json /usr/local/share/vmi/windows7-sp1.json
+
+# Set a reference to the newly create ISF-JSON file; $_ resembles the last argument of the last command (.../windows7-sp1.json)
+echo -e "windows7-sp1 {\n\tvolatility_ist = \"$_/windows7-sp1.json\";\n}" >> /etc/libvmi.conf
+
+# Check, if it worked by looking at the process list via libvmi's vmi-process-list
+sudo vmi-process-list windows7-sp1
+#+end_src
+
+*** Run DRAKVUF©
+Now everything has been set up to run DRAKVUF©
+
+#+begin_src
+# Retrieves the domid of the guest, needed by drakvuf
+DOMID=$(sudo xl domid windows7-sp1)
+# Trace the execution of the guest; -r <path to json config file> -d <domid>
+sudo ./src/drakvuf -r /usr/local/share/vmi/windows7-sp1.json -d $DOMID
+#+end_src
 
 ** References
 [1] https://drakvuf.com/
