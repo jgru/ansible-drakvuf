@@ -10,4 +10,5 @@
 - import_tasks: install_libvmi.yml
 # Install volatility3
 - import_tasks: install_volatility3.yml
-
+# Creates a network bridge for Xen guests
+- import_tasks: setup_bridge.yml

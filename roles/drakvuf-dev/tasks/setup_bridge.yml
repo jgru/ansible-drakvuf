@@ -1,0 +1,19 @@
+---
+- name: Create network bridge for Xen guests
+  become: yes
+  blockinfile:
+    path: "/etc/netplan/{{ netplan_file }}"
+    insertafter: EOF
+    # Note: indentation with block is not working in Ansible 2.10
+    content: "  bridges:\n    {{ br_name }}:\n      interfaces: [{{ nic }}]\n      dhcp4: true"
+  become: yes
+
+- name: Generate netplan
+  become: yes
+  command: netplan generate
+
+- name: Apply netplan
+  become: yes
+  command: netplan apply
+  async: 45
+  poll: 0
