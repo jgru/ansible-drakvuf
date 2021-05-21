@@ -36,8 +36,19 @@ Therefore theses steps are only described in the following section, although the
 To be able to use use DRAKVUF© you have to make sure, that you booted into Xen perform the following steps to create a VM, which can be introspected.
 
 *** Create domU
-**** Create LVM logical volume
-It is advisable to create a logical volume, where the guest will be installed. For a general overview about LVM have a look at [[https://wiki.debian.org/LVM][Debian's Wiki]]. The following command documentation gives a quick overview about the needed steps (caution data will be lost, if you're not understanding, what you're doing):
+**** Create Storage
+At first create the virtual machine disk image.
+***** ZFS Volume
+Performance wise it is advisable to use a [[https://pthree.org/2012/12/21/zfs-administration-part-xiv-zvols/][ZFS Volume]] to hold each guest disk. This can be done with the following commands
+#+begin_src bash
+# Create a ZFS dataset (needs zfsutils-linux)
+zpool create tank /dev/nvme0nXnY
+# Create a ZFS volume, which serves as image for the VM to create
+sudo zfs create -V 20G tank/vm0
+#+end_src
+
+***** LVM logical volume
+Another option is to create a logical volume, where the guest will be installed. For a general overview about LVM have a look at [[https://wiki.debian.org/LVM][Debian's Wiki]]. The following command documentation gives a quick overview about the needed steps (caution data will be lost, if you're not understanding, what you're doing):
 
 #+begin_src bash
 # Convert a devices (partitions respectively) into PVs (physical volumes)
@@ -56,7 +67,7 @@ lvdisplay
 **** Create a Xen Windows VM
 At first transfer your installation ISO to your Xen host. (Here it is assumed, that you place the .iso at ~/tmp/Win7_HomePrem_SP1.iso~)
 
-Afterwards create the domU-configuration file (here ~win7.cfg~) , which will be place under ~/etc/xen~.
+Then create the domU-configuration file (here ~win7.cfg~) , which will be placed under ~/etc/xen~.
 
 #+begin_src bash
 # Become root
@@ -91,9 +102,16 @@ altp2m = 2
 shadow_memory = 32
 # You could omit network configuration also
 vif = [ 'type=ioemu,model=e1000,bridge=xenbr0' ]
-disk = [ 'phy:/dev/vg0/windows7-sp1,hda,w', 'file:/tmp/Win7_HomePrem_SP1.iso,hdc:cdrom,r' ]
+
+# When using LVM use:
+#disk = [ 'phy:/dev/vg0/windows7-sp1,hda,w', 'file:/tmp/Win7_HomePrem_SP1.iso,hdc:cdrom,r' ]
+
+When using a ZFS volume set the disk field to:
+disk = [ 'phy:/dev/zvol/tank/vm0,hda,w', 'file:/tmp/Win7_HomePrem_SP1.iso,hdc:cdrom,r' ]
 EOF
 #+end_src
+Note the difference in specifying the storage backend for the virtual machine's disk.
+
 Afterwards you can boot and install the machine. If you have no ~autounattend.xml~-file in your ISO to automatically install windows. You have to connect via VNC to the newly created guest (.e.g. use [[https://packages.debian.org/sid/tigervnc-viewer][tigervnc-viewer]] for that).
 
 #+begin_src bash
