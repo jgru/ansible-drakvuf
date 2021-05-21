@@ -1,5 +1,5 @@
 ---
-- name: Configure libvmi with custom modules
+- name: Run autoreconf for libvmi 
   command: "autoreconf -vif"
   args:
     chdir: "{{ build_dir}}/libvmi"

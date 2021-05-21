@@ -1,0 +1,21 @@
+---
+- name: Run autoreconf for drakvuf
+  command: "autoreconf -vif"
+  args:
+    chdir: "{{ build_dir}}/"
+  become_user: "{{ drakvuf_user }}"
+  become: yes
+
+- name: Configure drakvuf
+  command: "./configure"
+  args:
+    chdir: "{{ build_dir }}/"
+  become_user: "{{ drakvuf_user }}"
+  become: yes
+
+- name: Compile drakvuf
+  command: "make -j4"
+  args:
+    chdir: "{{ build_dir }}/"
+  become_user: "{{ drakvuf_user }}"
+  become: yes
