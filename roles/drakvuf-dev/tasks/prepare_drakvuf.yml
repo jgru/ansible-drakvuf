@@ -17,7 +17,7 @@
 # Get drakvuf's code
 - name: Clone drakvuf repo
   git:
-    repo: https://github.com/tklengyel/drakvuf
+    repo: "{{ drakvuf_repo }}"
     dest: "{{ build_dir }}"
     recursive: yes
     update: yes

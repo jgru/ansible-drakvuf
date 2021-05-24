@@ -3,7 +3,9 @@ distribution: focal
 # User, which uses drakvuf
 drakvuf_user: user01
 # Drakvufs directory
-build_dir: /usr/local/src/drakvuf
+build_dir: /usr/local/src/drakvuf-dev
+# Repository to clone and build
+drakvuf_repo: https://github.com/jgru/drakvuf
 # Netplan config to insert the bridge to
 netplan_file: 00-installer-config.yaml
 # NIC to bridge
