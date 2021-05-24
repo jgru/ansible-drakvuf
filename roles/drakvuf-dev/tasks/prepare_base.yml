@@ -64,6 +64,7 @@
       - libsystemd-dev
       - nasm
       - python3-pefile
+      - zfsutils-linux # when using ZFS pool for the guests
     state: present
   become: yes
   tags:
