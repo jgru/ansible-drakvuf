@@ -1,7 +1,7 @@
 ---
 # Compile Xen
 - name: Configure xen with custom modules
-  command: "./configure --enable-githttp --enable-systemd --enable-ovmf --disable-pvshim"
+  command: "./configure --enable-githttp --enable-systemd --enable-ovmf --disable-pvshim --enable-libusb"
   args:
     chdir: "{{ build_dir}}/xen"
   become_user: "{{ drakvuf_user }}"
