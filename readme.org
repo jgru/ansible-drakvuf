@@ -139,7 +139,7 @@ P=$(sudo vmi-win-guid name windows7-sp1 | grep "Kernel filename" | cut -d' ' -f3
 # Run Volatily's pdbconv.py to retrieve the intermediate symbol table in JSON format
 sudo python3 /usr/local/src/drakvuf/volatility3/volatility/framework/symbols/windows/pdbconv.py --guid $GUID -p $P -o windows7-sp1.json
 
-# Elevante privileges (neded for writing in /etc/)
+# Elevante privileges (needed for writing in /usr/local/share...)
 sudo su
 
 # Copy the ISF to another location; some others choose /root/..
